@@ -6,14 +6,23 @@
 package fill.a.pix.solver;
 
 import static com.sun.java.accessibility.util.AWTEventMonitor.addMouseListener;
+import java.awt.AWTEvent;
 import java.awt.AWTException;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.FlowLayout;
+import java.awt.Graphics;
 import java.awt.MouseInfo;
 import java.awt.Point;
+import java.awt.PointerInfo;
 import java.awt.Rectangle;
 import java.awt.Robot;
+import java.awt.Toolkit;
 import java.awt.event.InputEvent;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
@@ -26,10 +35,19 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import javax.imageio.ImageIO;
+import javax.swing.AbstractButton;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
 import javax.swing.JFrame;
 import javax.swing.JInternalFrame;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
+import javax.swing.event.MouseInputAdapter;
 import org.apache.pdfbox.cos.COSDocument;
 import org.apache.pdfbox.pdfparser.PDFParser;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -249,46 +267,115 @@ public class FillAPixSolver {
     }
 
     private static JFrame frame;
+    private static GlassPane panel;
     private static JDesktopPane desktopPane;
     private static JInternalFrame internalFrame;
     private static int FRAME_SIZE = 500;
     private static Color BACKGROUND_COLOR = Color.BLUE;
+    static private MyGlassPane myGlassPane;
+    
+        private static void createAndShowGUI() {
+        //Create and set up the window.
+        JFrame frame = new JFrame("GlassPaneDemo");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        //Start creating and adding components.
+        JCheckBox changeButton =
+                new JCheckBox("Glass pane \"visible\"");
+        changeButton.setSelected(false);
+        
+        //Set up the content pane, where the "main GUI" lives.
+        Container contentPane = frame.getContentPane();
+        contentPane.setLayout(new FlowLayout());
+        contentPane.add(changeButton);
+        contentPane.add(new JButton("Button 1"));
+        contentPane.add(new JButton("Button 2"));
+
+        //Set up the menu bar, which appears above the content pane.
+        JMenuBar menuBar = new JMenuBar();
+        JMenu menu = new JMenu("Menu");
+        menu.add(new JMenuItem("Do nothing"));
+        menuBar.add(menu);
+        frame.setJMenuBar(menuBar);
+
+        //Set up the glass pane, which appears over both menu bar
+        //and content pane and is an item listener on the change
+        //button.
+        myGlassPane = new MyGlassPane(changeButton, menuBar,
+                                      frame.getContentPane());
+        changeButton.addItemListener(myGlassPane);
+        frame.setGlassPane(myGlassPane);
+
+        //Show the window.
+        frame.pack();
+        frame.setVisible(true);
+    }
     
     private void loadPDF() throws FileNotFoundException, IOException, AWTException, Exception {
-          
-        Robot robot = new Robot();
-        robot.setAutoDelay(20);
-        SwingUtilities.invokeAndWait(() -> {
-            createAndShowGUI();
-        });
-        robot.waitForIdle();
-        
-//        SwingUtilities.invokeAndWait(() -> {
-//            UserButtonActionPerformed();
-//        });
-
-        final int translate = FRAME_SIZE / 4;
-        moveFrame(robot, translate, translate / 2, translate / 2);
-        robot.waitForIdle();
-
-        Point p = getDesktopPaneLocation();
-        int size = translate / 2;
-        Rectangle rect = new Rectangle(p.x, p.y, size, size);
-        BufferedImage img = robot.createScreenCapture(rect);
         
         
-        File file = new File("C:\\Users\\Kaj75\\Desktop\\Project\\test.png");
-        ImageIO.write(img, "png", file);
-        MouseInfo.getPointerInfo().getLocation();
-
-        int testRGB = BACKGROUND_COLOR.getRGB();
-        for (int i = 0; i < size; i++) {
-            int rgbCW = img.getRGB(i, size / 2);
-            int rgbCH = img.getRGB(size / 2, i);
-            if (rgbCW != testRGB || rgbCH != testRGB) {
-                throw new RuntimeException("Background color is wrong!");
+        javax.swing.SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                createAndShowGUI();
             }
-        }
+        });
+        
+        
+        
+        
+        
+//        Toolkit.getDefaultToolkit().addAWTEventListener(
+//            new MyMouseListener(), AWTEvent.MOUSE_EVENT_MASK | AWTEvent.FOCUS_EVENT_MASK);
+
+//        SwingUtilities.invokeAndWait(() -> {
+////            createAndShowGUI();
+//        
+//
+//        frame = new JFrame("Test");
+//        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+//        
+//        panel = new GlassPane();
+//        
+//        frame.setGlassPane(panel);
+//        
+//        frame.pack();
+//        frame.setVisible(true);
+//        });
+//        
+//        PointerInfo inf = MouseInfo.getPointerInfo();
+//        Point p = inf.getLocation();
+//          
+//        Robot robot = new Robot();
+//        robot.getPixelColor(width, width);
+//        robot.setAutoDelay(20);
+//        SwingUtilities.invokeAndWait(() -> {
+//            createAndShowGUI();
+//        });
+//        robot.waitForIdle();
+        
+
+//        final int translate = FRAME_SIZE / 4;
+//        moveFrame(robot, translate, translate / 2, translate / 2);
+//        robot.waitForIdle();
+
+//        Point p = getDesktopPaneLocation();
+//        int size = translate / 2;
+//        Rectangle rect = new Rectangle(p.x, p.y, size, size);
+//        BufferedImage img = robot.createScreenCapture(rect);
+        
+        
+//        File file = new File("C:\\Users\\Kaj75\\Desktop\\Project\\test.png");
+//        ImageIO.write(img, "png", file);
+//        MouseInfo.getPointerInfo().getLocation();
+
+//        int testRGB = BACKGROUND_COLOR.getRGB();
+//        for (int i = 0; i < size; i++) {
+//            int rgbCW = img.getRGB(i, size / 2);
+//            int rgbCH = img.getRGB(size / 2, i);
+//            if (rgbCW != testRGB || rgbCH != testRGB) {
+//                throw new RuntimeException("Background color is wrong!");
+//            }
+//        }
     }
     
     private static void moveFrame(Robot robot, int w, int h, int N) throws Exception {
@@ -311,27 +398,33 @@ public class FillAPixSolver {
         }
     }
     
-    private static void createAndShowGUI() {
+//    private static void createAndShowGUI() {
 
-        frame = new JFrame();
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLayout(new BorderLayout());
+//        frame = new JFrame();
+//        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+//        frame.setLayout(new BorderLayout());
+        
+//        MyMouseListener mml = new MyMouseListener();
+//        frame.addMouseListener(mml);
+//        addMouseListener(mml);
 
-        desktopPane = new JDesktopPane();
-        desktopPane.setBackground(BACKGROUND_COLOR);
+  
 
-        frame.add(desktopPane, BorderLayout.CENTER);
-        frame.setSize(FRAME_SIZE, FRAME_SIZE);
-        frame.setVisible(true);
-
-        internalFrame = new JInternalFrame("Test");
-        internalFrame.setSize(FRAME_SIZE / 2, FRAME_SIZE / 2);
-        desktopPane.add(internalFrame);
-        internalFrame.setVisible(true);
-        internalFrame.setResizable(true);
-
-        frame.setVisible(true);
-    }
+//        desktopPane = new JDesktopPane();
+//        desktopPane.setBackground(BACKGROUND_COLOR);
+//
+//        frame.add(desktopPane, BorderLayout.CENTER);
+//        frame.setSize(FRAME_SIZE, FRAME_SIZE);
+//        frame.setVisible(true);
+//
+//        internalFrame = new JInternalFrame("Test");
+//        internalFrame.setSize(FRAME_SIZE / 2, FRAME_SIZE / 2);
+//        desktopPane.add(internalFrame);
+//        internalFrame.setVisible(true);
+//        internalFrame.setResizable(true);
+//
+//        frame.setVisible(true);
+    //}
 
     private static Point getInternalFrameLocation() throws Exception {
         final Point[] points = new Point[1];
@@ -358,11 +451,142 @@ public class FillAPixSolver {
     
     private void UserButtonActionPerformed(java.awt.event.ActionEvent evt) {
         addMouseListener(new MouseAdapter() {
-        public void mouseClicked(MouseEvent evt) {
-            System.out.println("PRINT THIS AFTER MOUSE CLICK");
+            public void mouseClicked(MouseEvent evt) {
+                System.out.println("PRINT THIS AFTER MOUSE CLICK");
             //removeMouseListener(this);
-        }
-    });
+            }
+        });
+    }    
 }
-    
+
+class MyGlassPane extends JComponent
+                  implements ItemListener {
+    Point point;
+
+    protected void paintComponent(Graphics g) {
+        if (point != null) {
+            g.setColor(Color.red);
+            g.fillOval(point.x - 10, point.y - 10, 20, 20);
+        }
+    }
+
+    public void setPoint(Point p) {
+        point = p;
+    }
+
+    public MyGlassPane(AbstractButton aButton,
+                       JMenuBar menuBar,
+                       Container contentPane) {
+        CBListener listener = new CBListener(aButton, menuBar,
+                                             this, contentPane);
+        addMouseListener(listener);
+        addMouseMotionListener(listener);
+    }
+
+    @Override
+    public void itemStateChanged(ItemEvent e) {
+        setVisible(e.getStateChange() == ItemEvent.SELECTED);
+    }
+}
+
+/**
+ * Listen for all events that our check box is likely to be
+ * interested in.  Redispatch them to the check box.
+ */
+class CBListener extends MouseInputAdapter {
+    Toolkit toolkit;
+    Component liveButton;
+    JMenuBar menuBar;
+    MyGlassPane glassPane;
+    Container contentPane;
+
+    public CBListener(Component liveButton, JMenuBar menuBar,
+                      MyGlassPane glassPane, Container contentPane) {
+        toolkit = Toolkit.getDefaultToolkit();
+        this.liveButton = liveButton;
+        this.menuBar = menuBar;
+        this.glassPane = glassPane;
+        this.contentPane = contentPane;
+    }
+
+    public void mouseMoved(MouseEvent e) {
+        redispatchMouseEvent(e, false);
+    }
+
+    public void mouseDragged(MouseEvent e) {
+        redispatchMouseEvent(e, false);
+    }
+
+    public void mouseClicked(MouseEvent e) {
+        redispatchMouseEvent(e, false);
+    }
+
+    public void mouseEntered(MouseEvent e) {
+        redispatchMouseEvent(e, false);
+    }
+
+    public void mouseExited(MouseEvent e) {
+        redispatchMouseEvent(e, false);
+    }
+
+    public void mousePressed(MouseEvent e) {
+        redispatchMouseEvent(e, false);
+    }
+
+    public void mouseReleased(MouseEvent e) {
+        redispatchMouseEvent(e, true);
+    }
+
+    //A basic implementation of redispatching events.
+    private void redispatchMouseEvent(MouseEvent e,
+                                      boolean repaint) {
+        Point glassPanePoint = e.getPoint();
+        Container container = contentPane;
+        Point containerPoint = SwingUtilities.convertPoint(
+                                        glassPane,
+                                        glassPanePoint,
+                                        contentPane);
+        if (containerPoint.y < 0) { //we're not in the content pane
+            if (containerPoint.y + menuBar.getHeight() >= 0) { 
+                //The mouse event is over the menu bar.
+                //Could handle specially.
+            } else { 
+                //The mouse event is over non-system window 
+                //decorations, such as the ones provided by
+                //the Java look and feel.
+                //Could handle specially.
+            }
+        } else {
+            //The mouse event is probably over the content pane.
+            //Find out exactly which component it's over.  
+            Component component = 
+                SwingUtilities.getDeepestComponentAt(
+                                        container,
+                                        containerPoint.x,
+                                        containerPoint.y);
+                            
+            if ((component != null) 
+                && (component.equals(liveButton))) {
+                //Forward events over the check box.
+                Point componentPoint = SwingUtilities.convertPoint(
+                                            glassPane,
+                                            glassPanePoint,
+                                            component);
+                component.dispatchEvent(new MouseEvent(component,
+                                                     e.getID(),
+                                                     e.getWhen(),
+                                                     e.getModifiers(),
+                                                     componentPoint.x,
+                                                     componentPoint.y,
+                                                     e.getClickCount(),
+                                                     e.isPopupTrigger()));
+            }
+        }
+        
+        //Update the glass pane if requested.
+        if (repaint) {
+            glassPane.setPoint(glassPanePoint);
+            glassPane.repaint();
+        }
+    }
 }
