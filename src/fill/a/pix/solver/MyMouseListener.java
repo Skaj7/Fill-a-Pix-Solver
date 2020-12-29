@@ -7,9 +7,12 @@ package fill.a.pix.solver;
 
 import java.awt.AWTEvent;
 import java.awt.MouseInfo;
+import java.awt.Point;
 import java.awt.event.AWTEventListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.WindowEvent;
+import javax.swing.JFrame;
 import javax.swing.event.MouseInputAdapter;
 
 /**
@@ -17,27 +20,45 @@ import javax.swing.event.MouseInputAdapter;
  * @author Kaj75
  */
 public class MyMouseListener extends MouseInputAdapter{
-    
+
+    FillAPixSolver fps;
+    JFrame frame;
+    Point upperLeft=null, lowerRight=null;
+    public MyMouseListener(FillAPixSolver fps, JFrame frame) {
+        this.fps = fps;
+        this.frame = frame;
+    }
 
     public void mouseClicked(MouseEvent e) {
+        if(upperLeft == null){
+            upperLeft = e.getPoint();
+        }else{
+            lowerRight = e.getPoint();
+            Thread thread = new Thread() {
+                public void run(){
+                    fps.test();
+                }
+            };
+            thread.start();
+            frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));
+        }
         System.out.println("clicked");
-        int a = 5;
     }
 
     public void mousePressed(MouseEvent e) {
-        System.out.println("pressed");
+//        System.out.println("pressed");
     }
 
     public void mouseReleased(MouseEvent e) {
-        System.out.println("release");
+//        System.out.println("release");
     }
 
     public void mouseEntered(MouseEvent e) {
-        System.out.println("enter");
+//        System.out.println("enter");
     }
 
     public void mouseExited(MouseEvent e) {
-        System.out.println("exit");
+//        System.out.println("exit");
     }
     
 }
