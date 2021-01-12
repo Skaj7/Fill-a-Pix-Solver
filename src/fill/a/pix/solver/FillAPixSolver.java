@@ -36,6 +36,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.AbstractButton;
 import javax.swing.JButton;
@@ -66,9 +68,9 @@ public class FillAPixSolver {
     private LinkedList pq, pqd;
     private Square[][] allSquares;
     private int progress;
-    //set before
-    private int height = 10;
-    private int width  = 10;
+    //set before board
+    private int bHeight = 10;
+    private int bWidth  = 10;
     
     public static void main(String[] args) throws FileNotFoundException, IOException, Exception {
         FillAPixSolver fps = new FillAPixSolver();
@@ -82,7 +84,7 @@ public class FillAPixSolver {
         //Run Queue algo
         fps.runQueue();
         //print solution
-        fps.printSolution();
+        //fps.printSolution();
     }
     
     public void makeQueue(){
@@ -91,8 +93,8 @@ public class FillAPixSolver {
         pq = new LinkedList(); //PriorityQueue<Group>();
         pqd = new LinkedList();
         //create Squares
-        allSquares = new Square[width][height];
-        createSquares(height, width);
+        allSquares = new Square[bWidth][bHeight];
+        createSquares(bHeight, bWidth);
         //create groups
         List<Data> data;
         data = testData();
@@ -172,9 +174,9 @@ public class FillAPixSolver {
         List<Square> squares = new ArrayList<>();
         int sX, eX, sY, eY;
         sX = Math.max(group.x - 1, 0);
-        eX = Math.min(group.x + 1, width-1);
+        eX = Math.min(group.x + 1, bWidth-1);
         sY = Math.max(group.y - 1, 0);
-        eY = Math.min(group.y + 1, height-1);
+        eY = Math.min(group.y + 1, bHeight-1);
         for (int i = sY; i <= eY; i++) {
             for (int j = sX; j <= eX; j++) {
                 squares.add(allSquares[j][i]);
@@ -286,7 +288,7 @@ public class FillAPixSolver {
 
         
         JFrame frame = new JFrame("Test");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
         frame.setUndecorated(true);
         frame.setBackground(tranparentBlack);
 
@@ -447,8 +449,39 @@ public class FillAPixSolver {
         });
     }    
 
-    void test() {
-        System.out.println("TTTTTTTTTTTTTTTTTTTTEEEEEEEEEEEEEEEEEEESSSSSSSSSSSSSSSSSSSSSTTTTTTTTTTTTTTTTTT");
+    
+
+    void processGame(Point upperLeft, Point lowerRight) {
+        System.out.println("test");
+        calibrateBoard(upperLeft, lowerRight);
+        displaySolution();
+    }
+    
+    //in pixels
+    private int xStep, yStep; 
+    private Point origin;
+    
+    void calibrateBoard(Point upperLeft, Point lowerRight) { 
+        xStep = (lowerRight.x - upperLeft.x) / bWidth;
+        yStep = (lowerRight.y - upperLeft.y) / bHeight;
+        origin = new Point(upperLeft);
+        origin.translate(xStep/2, yStep/2);
+    }
+
+    private void displaySolution() {
+        try {
+            Robot bot = new Robot();
+            while (!pqd.isEmpty()) {     
+                Group g = (Group)pqd.pollFirst();
+                bot.mouseMove(origin.x+(xStep*g.x), origin.y+(yStep*g.y));
+                bot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+                bot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+                bot.delay(10);
+            }
+        } catch (AWTException ex) {
+            Logger.getLogger(FillAPixSolver.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
     }
 }
 

@@ -36,7 +36,7 @@ public class MyMouseListener extends MouseInputAdapter{
             lowerRight = e.getPoint();
             Thread thread = new Thread() {
                 public void run(){
-                    fps.test();
+                    fps.processGame(upperLeft, lowerRight);
                 }
             };
             thread.start();
