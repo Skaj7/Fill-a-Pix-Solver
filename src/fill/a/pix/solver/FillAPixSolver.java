@@ -15,6 +15,9 @@ import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.MouseInfo;
 import java.awt.Point;
 import java.awt.PointerInfo;
@@ -27,6 +30,7 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
@@ -40,6 +44,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.AbstractButton;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
@@ -50,14 +55,20 @@ import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.event.MouseInputAdapter;
+import net.sourceforge.tess4j.Tesseract;
+import net.sourceforge.tess4j.TesseractException;
 import org.apache.pdfbox.cos.COSDocument;
 import org.apache.pdfbox.pdfparser.PDFParser;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
+
 
 /**
  *
@@ -71,26 +82,170 @@ public class FillAPixSolver {
     //set before board
     private int bHeight = 10;
     private int bWidth  = 10;
+    //motion bot
+    Robot bot;
+
+    public FillAPixSolver() throws AWTException {
+        bot = new Robot();
+    }    
     
     public static void main(String[] args) throws FileNotFoundException, IOException, Exception {
         FillAPixSolver fps = new FillAPixSolver();
-        //get external data
+
+        Robot robot = new Robot();
+        final Dimension screenSize = Toolkit.getDefaultToolkit().
+                getScreenSize();
+        BufferedImage screen = robot.createScreenCapture(
+                new Rectangle(screenSize));
+
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                fps.ScreenCaptureRectangle(screen);
+            }
+        });
+        
+        //number from image
+        //fps.testTesseractEngine();
+        
+//get external data
 //        fps.externalData();
         //load pdf
-        fps.loadPDF();
+        //fps.loadPDF();
         //make Queue
         System.out.println("Test");
-        fps.makeQueue();
+        //fps.makeQueue();
         //Run Queue algo
-        fps.runQueue();
+        //fps.runQueue();
         //print solution
         //fps.printSolution();
     }
     
+    Rectangle captureRect;
+    BufferedImage screenCopy;
+    BufferedImage screen;
+    JLabel screenLabel;
+    JLabel selectionLabel;
+    
+    void ScreenCaptureRectangle(BufferedImage screen) {
+        screenCopy = new BufferedImage(
+                screen.getWidth(),
+                screen.getHeight(),
+                screen.getType());
+        screenLabel = new JLabel(new ImageIcon(screenCopy));
+        JScrollPane screenScroll = new JScrollPane(screenLabel);
+        screenScroll.getVerticalScrollBar().setUnitIncrement(16);
+
+        screenScroll.setPreferredSize(new Dimension(
+                (int)(screen.getWidth()/2),
+                (int)(screen.getHeight()/2)));
+
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints c = new GridBagConstraints();
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.weightx = 0.0;
+        c.gridx = 0;
+        c.gridy = 0;
+        panel.add(screenScroll, c);
+
+        selectionLabel = new JLabel(
+                "Drag a rectangle in the screen shot!");
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.weightx = 0.5;
+        c.gridx = 0;
+        c.gridy = 1;
+        panel.add(selectionLabel, c);
+        
+        JLabel t1 = new JLabel(
+                "Number of colums");
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.weightx = 0.5;
+        c.gridx = 0;
+        c.gridy = 2;
+        panel.add(t1, c);
+        
+        JTextField colums = new JTextField();
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.weightx = 0;
+        c.gridx = 0;
+        c.gridy = 3;
+        panel.add(colums, c);
+        
+        JLabel t2 = new JLabel(
+                "Number of rows");
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.weightx = 0.5;
+        c.gridx = 0;
+        c.gridy = 4;
+        panel.add(t2, c);
+        
+        JTextField rows = new JTextField();
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.weightx = 0;
+        c.gridx = 0;
+        c.gridy = 5;
+        panel.add(rows, c);
+
+        repaint(screen, screenCopy);
+        screenLabel.repaint();
+
+        screenLabel.addMouseMotionListener(new MouseMotionAdapter() {
+
+            Point start = new Point();
+
+            @Override
+            public void mouseMoved(MouseEvent me) {
+                start = me.getPoint();
+                repaint(screen, screenCopy);
+                selectionLabel.setText("Start Point: " + start);
+                String temp = colums.getText();
+                screenLabel.repaint();
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent me) {
+                Point end = me.getPoint();
+                captureRect = new Rectangle(start,
+                        new Dimension(end.x-start.x, end.y-start.y));
+                repaint(screen, screenCopy);
+                screenLabel.repaint();
+                selectionLabel.setText("Rectangle: " + captureRect);
+            }
+        });
+
+        JOptionPane.showMessageDialog(null, panel);
+        
+        //Rectangle screenRect = new Rectangle(Toolkit.getDefaultToolkit().getScreenSize());
+        BufferedImage capture = bot.createScreenCapture(captureRect);
+        try {
+            ImageIO.write(capture, "png", new File("Board.png"));
+        } catch (IOException ex) {
+            Logger.getLogger(FillAPixSolver.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        bWidth = Integer.parseInt(colums.getText());
+        bHeight = Integer.parseInt(rows.getText());
+
+        System.out.println("Rectangle of interest: " + captureRect);
+        System.out.println("box width+height " + bWidth + " " + bHeight );
+        processGame();
+    }
+
+    public void repaint(BufferedImage orig, BufferedImage copy) {
+        Graphics2D g = copy.createGraphics();
+        g.drawImage(orig,0,0, null);
+        if (captureRect!=null) {
+            g.setColor(Color.RED);
+            g.draw(captureRect);
+            g.setColor(new Color(255,255,255,150));
+            g.fill(captureRect);
+        }
+        g.dispose();
+    }
+   
+    
     public void makeQueue(){
         System.out.println("test");
         //create queue
-        pq = new LinkedList(); //PriorityQueue<Group>();
+        pq = new LinkedList(); 
         pqd = new LinkedList();
         //create Squares
         allSquares = new Square[bWidth][bHeight];
@@ -283,10 +438,7 @@ public class FillAPixSolver {
     
     
     
-    private static void createAndShowGUI(FillAPixSolver fps) {
-        
-
-        
+    private static void createAndShowGUI(FillAPixSolver fps) {       
         JFrame frame = new JFrame("Test");
         frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
         frame.setUndecorated(true);
@@ -310,63 +462,6 @@ public class FillAPixSolver {
 //                
 //            }
 //        });
-        
-        
-        
-        
-        
-//        Toolkit.getDefaultToolkit().addAWTEventListener(
-//            new MyMouseListener(), AWTEvent.MOUSE_EVENT_MASK | AWTEvent.FOCUS_EVENT_MASK);
-
-//        SwingUtilities.invokeAndWait(() -> {
-////            createAndShowGUI();
-//        
-//
-//        frame = new JFrame("Test");
-//        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-//        
-//        panel = new GlassPane();
-//        
-//        frame.setGlassPane(panel);
-//        
-//        frame.pack();
-//        frame.setVisible(true);
-//        });
-//        
-//        PointerInfo inf = MouseInfo.getPointerInfo();
-//        Point p = inf.getLocation();
-//          
-//        Robot robot = new Robot();
-//        robot.getPixelColor(width, width);
-//        robot.setAutoDelay(20);
-//        SwingUtilities.invokeAndWait(() -> {
-//            createAndShowGUI();
-//        });
-//        robot.waitForIdle();
-        
-
-//        final int translate = FRAME_SIZE / 4;
-//        moveFrame(robot, translate, translate / 2, translate / 2);
-//        robot.waitForIdle();
-
-//        Point p = getDesktopPaneLocation();
-//        int size = translate / 2;
-//        Rectangle rect = new Rectangle(p.x, p.y, size, size);
-//        BufferedImage img = robot.createScreenCapture(rect);
-        
-        
-//        File file = new File("C:\\Users\\Kaj75\\Desktop\\Project\\test.png");
-//        ImageIO.write(img, "png", file);
-//        MouseInfo.getPointerInfo().getLocation();
-
-//        int testRGB = BACKGROUND_COLOR.getRGB();
-//        for (int i = 0; i < size; i++) {
-//            int rgbCW = img.getRGB(i, size / 2);
-//            int rgbCH = img.getRGB(size / 2, i);
-//            if (rgbCW != testRGB || rgbCH != testRGB) {
-//                throw new RuntimeException("Background color is wrong!");
-//            }
-//        }
     }
     
     private static void moveFrame(Robot robot, int w, int h, int N) throws Exception {
@@ -388,34 +483,6 @@ public class FillAPixSolver {
             robot.mouseRelease(InputEvent.BUTTON1_MASK);
         }
     }
-    
-//    private static void createAndShowGUI() {
-
-//        frame = new JFrame();
-//        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-//        frame.setLayout(new BorderLayout());
-        
-//        MyMouseListener mml = new MyMouseListener();
-//        frame.addMouseListener(mml);
-//        addMouseListener(mml);
-
-  
-
-//        desktopPane = new JDesktopPane();
-//        desktopPane.setBackground(BACKGROUND_COLOR);
-//
-//        frame.add(desktopPane, BorderLayout.CENTER);
-//        frame.setSize(FRAME_SIZE, FRAME_SIZE);
-//        frame.setVisible(true);
-//
-//        internalFrame = new JInternalFrame("Test");
-//        internalFrame.setSize(FRAME_SIZE / 2, FRAME_SIZE / 2);
-//        desktopPane.add(internalFrame);
-//        internalFrame.setVisible(true);
-//        internalFrame.setResizable(true);
-//
-//        frame.setVisible(true);
-    //}
 
     private static Point getInternalFrameLocation() throws Exception {
         final Point[] points = new Point[1];
@@ -432,13 +499,6 @@ public class FillAPixSolver {
         });
         return points[0];
     }
-
-//    private void externalData() throws InterruptedException, InvocationTargetException {
-//        myMouseListener mml;
-//        SwingUtilities.invokeAndWait(() -> {
-//            mml = new myMouseListener();
-//        });
-//    }
     
     private void UserButtonActionPerformed(java.awt.event.ActionEvent evt) {
         addMouseListener(new MouseAdapter() {
@@ -448,8 +508,12 @@ public class FillAPixSolver {
             }
         });
     }    
-
     
+    void processGame(){
+        interpretBoard();
+        runQueue();
+        displaySolution();
+    }
 
     void processGame(Point upperLeft, Point lowerRight) {
         System.out.println("test");
@@ -462,26 +526,81 @@ public class FillAPixSolver {
     private Point origin;
     
     void calibrateBoard(Point upperLeft, Point lowerRight) { 
-        xStep = (lowerRight.x - upperLeft.x) / bWidth;
-        yStep = (lowerRight.y - upperLeft.y) / bHeight;
+        xStep = (int)Math.floor((double)(lowerRight.x - upperLeft.x) / bWidth);
+        yStep = (int)Math.floor((double)(lowerRight.y - upperLeft.y) / bHeight);
         origin = new Point(upperLeft);
         origin.translate(xStep/2, yStep/2);
     }
 
     private void displaySolution() {
-        try {
-            Robot bot = new Robot();
-            while (!pqd.isEmpty()) {     
-                Group g = (Group)pqd.pollFirst();
-                bot.mouseMove(origin.x+(xStep*g.x), origin.y+(yStep*g.y));
-                bot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
-                bot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
-                bot.delay(10);
-            }
-        } catch (AWTException ex) {
-            Logger.getLogger(FillAPixSolver.class.getName()).log(Level.SEVERE, null, ex);
+        while (!pqd.isEmpty()) {
+            Group g = (Group)pqd.pollFirst();
+            bot.mouseMove(origin.x+(xStep*g.x), origin.y+(yStep*g.y));
+            bot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+            bot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+            bot.delay(50);
         }
         
+    }
+
+
+    private void interpretBoard() {
+        //create queue
+        pq = new LinkedList(); 
+        pqd = new LinkedList();
+        //create Squares
+        allSquares = new Square[bWidth][bHeight];
+        createSquares(bHeight, bWidth);
+        calibrateBoard(new Point(captureRect.x, captureRect.y), new Point(captureRect.x+captureRect.width, captureRect.y+captureRect.height));
+        //create groups
+        List<Data> data;
+        data = recognizeSquares();
+        CreateGroups(data);
+    }
+
+    private List<Data> recognizeSquares() {
+        List<Data> data = new ArrayList<>();
+        //split board
+        final BufferedImage source;
+        Tesseract tesseract = new Tesseract(); 
+        tesseract.setDatapath("C:/Users/Kaj75/Desktop/Project/Tess4J/tessdata"); 
+        try {
+            source = ImageIO.read(new File("Board.png"));
+            int padding = 11;
+            for (int x = 0; x < bWidth; x++) {
+                for (int y = 0; y < bHeight; y++) {
+                    File image = new File("PositionX" + x + "Y" + y + ".png");
+                    int frameX = x*xStep+padding;
+                    int frameY = y*yStep+padding;
+                    int frameWidth = xStep-padding;
+                    int frameHeight = yStep-padding;
+                    if(x == bWidth-1){
+                        frameWidth = captureRect.width - frameX - padding;
+                    }
+                    if(y == bHeight-1){
+                        frameHeight = captureRect.height - frameY - padding;
+                    }
+                    //ImageIO.write(source.getSubimage(frameX, frameY, frameWidth, frameHeight), "png", image);
+                    String text = tesseract.doOCR(image);
+                    if(x==5){
+                        int a=2;
+                    }
+                    text = text.replaceAll("o", "0");
+                    text = text.replaceAll("O", "0");
+                    text = text.replaceAll("[^0-9]", "");
+                    if(!text.isEmpty()){
+                        data.add(new Data(Integer.parseInt(text), x, y));
+                    }
+                }
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(FillAPixSolver.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (TesseractException ex) {
+            Logger.getLogger(FillAPixSolver.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        //using tesseract to fill data points
+        return data;
     }
 }
 
